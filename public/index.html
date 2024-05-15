@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>簡易物價查詢系統</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .search-box {
+      margin: 20px 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    table, th, td {
+      border: 1px solid black;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+<h1>漁產品物價查詢系統</h1>
+<div class="search-box">
+  <label for="searchDate">日期 (YYYY-MM)：</label>
+  <input type="month" id="searchDate">
+  <br>
+  <label for="searchPrice">商品價格：</label>
+  <input type="number" id="searchPrice" step="0.1" placeholder="輸入商品價格">
+  <br>
+  <button onclick="searchItems()">搜尋</button>
+</div>
+<table id="priceTable">
+  <thead>
+  <tr>
+    <th>日期</th>
+    <th>商品價格</th>
+    <th>交易量</th>
+  </tr>
+  </thead>
+  <tbody>
+  </tbody>
+</table>
+
+<script>
+  let initialData = [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/quotes')
+            .then(response => response.json())
+            .then(data => {
+              initialData = data;
+              updateTable(initialData);
+            });
+  });
+
+  async function searchItems() {
+    const date = document.getElementById('searchDate').value;
+    const price = document.getElementById('searchPrice').value;
+
+    if (!date && !price) {
+      alert('請輸入至少一個搜尋條件');
+      updateTable(initialData);
+      return;
+    }
+
+    const query = new URLSearchParams({ date, price }).toString();
+    const response = await fetch(`/api/search?${query}`);
+    const items = await response.json();
+    updateTable(items.length > 0 ? items : initialData);
+
+    // Clear the search inputs
+    document.getElementById('searchDate').value = '';
+    document.getElementById('searchPrice').value = '';
+  }
+
+  function updateTable(items) {
+    const tbody = document.getElementById('priceTable').querySelector('tbody');
+    tbody.innerHTML = '';
+    items.forEach(item => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${item.transaction_date}</td>
+        <td>${item.average_price}</td>
+        <td>${item.transaction_volume}</td>
+      `;
+      tbody.appendChild(row);
+    });
+  }
+</script>
+</body>
+</html>
